@@ -155,21 +155,117 @@ vehicles2 <- data.frame(vehicles2)
 
 dont use the dummies package, its depricated. usefastdummies. 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(fastDummies) #package 
+
+```
+
+
+```{r}
 vehicles2 <- dummy_cols(.data = vehicles2, select_columns = 'drive2')
 
 ```
 
 
 # sampling methods
-simple random sampling
+ simple random sampling
 stratified random sampling
 
+## simple random sampling
+
 ```{r simple random sampling}
+set.seed(1234) # nned to run these lines at same time to use set.seed()
+sample(x = 100, size = 20, replace = F) # without replacement
+
+sample_set <- sample(nrow(vehicles), nrow(vehicles)* .75, replace = F)
+
+# create train data from sample_set
+
+vehicles_train <- vehicles[sample_set,]
+
+# and test set
+
+vehicles_test <- vehicles[-sample_set,]
+
+```
+
+## stratified random sampling
+
+use this for highly imbalanced datasets, so the model isnt skewed toward the maority factor. 
+
+```{r stratified random sampling}
+library(caTools) # package
+
+vehicles %>% 
+  select(drive) %>% 
+  table() %>% 
+  prop.table() # distribution of factors in dataset
+set.seed(1234)
+sample_set <- sample.split(vehicles$drive, SplitRatio = .01) # returns logical vector
+
+vehicles_stratified <- subset(vehicles, sample_set == TRUE) # these are the rows selected with sample.split
+
+# is distribution the same?
+
+ vehicles_stratified%>% 
+  select(drive) %>% 
+  table() %>% 
+  prop.table() 
+
+#not exactly but very close
+
+
+```
+
+
+# dimensionality reduction
+getting rid of useless variables
+1. feature selection
+2. feature extraction
+
+## feature selection
+gettings rids of highly correlated and useless variables. 
+i.e variable subset selection
+
+```{r feature selection}
 
 
 
 ```
 
+## feature extraction
+
+i.e. feature protection
+
+use functions to produce new variables that are different from the original ones, issue: these features are hard to interpret and the user may not understand what they relate to. 
+
+types : 
+principal component analysis
+non-negative matrix factorization
+
+```{r}
+
+```
+
+
+# pracitce 
+
+```{r}
+vehicles %>% 
+  select(drive, make, model, class) %>% 
+  summary()
+
+# min max on co2emissions
+
+x = vehicles$co2emissions
+min = min(vehicles$co2emissions)
+max= max(vehicles$co2emissions)
+
+
+
+vehicles %>% 
+  select(co2emissions) %>% 
+  mutate( co2emissions_minmax = ((x - min)/(max - min))*(10-1)+1) %>% 
+  summary()
+```
 
