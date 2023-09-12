@@ -11,7 +11,165 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Chapter 3, all about yo data
 
-```{r}
+```{r packages, message=FALSE, warning=FALSE}
+library(tidyverse)
 
 ```
+
+
+# reading
+
+```{r data}
+vehicles <- read_csv('Full Book/Chapter 3 Code/Student/Data/vehicles.csv')
+```
+
+glimpse is like head, but formatted different 
+i prefer head and str
+
+```{r looking at data}
+glimpse(vehicles)
+head(vehicles)
+str(vehicles)
+```
+```{r NA replacement }
+
+# check for NAs
+any(is.na(vehicles)) 
+
+#there are.. where are they
+summary(vehicles)
+
+#citympg, displacement, and highwaympg
+
+# replace them with mean or median. 
+# use na.rm in the ifelse() bc to calc median you dont want the NAs intereferring
+
+vehicles <- vehicles %>% 
+  mutate(citympg = ifelse(is.na(citympg), median(citympg, na.rm = T), citympg)) %>% 
+  mutate(highwaympg = ifelse(is.na(highwaympg), median(highwaympg, na.rm = T), highwaympg)) %>% mutate(displacement = ifelse(is.na(displacement), mean(displacement, na.rm = T), displacement))
+
+# did it work?
+
+ any(is.na(vehicles))
+ summary(vehicles)
+```
+
+# normalizing data
+
+now we want to normalize the data. we can either
+1. decimal scale it
+2. zscore it
+3. min-max 
+4. log transformation
+
+## decimal scaling
+
+```{ r decimal scaling}
+
+summary(vehicles$co2emissions)
+
+#min = 29, max = 1269, scale by 10^4
+
+vehicles %>% mutate(co2emissions_d = co2emissions / 10^4) %>% 
+summary
+# cool it worked, now what.....
+
+```
+
+## z scores
+normalize w z scores instaed. 
+```{r z scores }
+vehicles %>% select(co2emissions) %>% # not sure why we have to select but we do
+  mutate(co2emissions_z = (co2emissions - mean(co2emissions))/ sd(co2emissions)) %>% 
+  summary()
+# theres got to be an easier way tot do this..... scale()
+# yup, thats alot easier
+
+summary(scale(vehicles$co2emissions))
+
+
+```
+## min max
+formula is
+$$ x' =\frac{x - min(x)}{max(x)-min(x)} * (upper bound - lower bound) + lower bound $$
+
+```{r min max}
+
+vehicles %>% 
+  select(co2emissions) %>% 
+  mutate(co2emissions_n = ((co2emissions - min(co2emissions)) 
+                           / (max(co2emissions) - max(co2emissions))) *
+                            (1-0 )+ 0) %>% 
+  summary()
+
+# these brackets make my head hurt sooooo......
+
+main <- vehicles$co2emissions
+min <- min(vehicles$co2emissions)
+max <- max(vehicles$co2emissions)
+
+vehicles %>% 
+  select(co2emissions) %>% 
+  mutate(co2emissions_n = ((main - min) / (max - min)) * ((1 - 0) + 0)) %>% 
+summary()
+
+```
+
+
+## log
+ best one if distribution is skewed. Warning = this only works if values are positive. 
+ $$ x' = log(x)$$
+```{r log}
+vehicles %>% 
+  select(co2emissions) %>% 
+  mutate(co2emissions_b = log10(co2emissions)) %>% 
+  summary()
+```
+
+# discretization
+
+when you got continuous data but need catigorical 
+
+```{r descretize}
+
+# fix drive variable to factor
+
+vehicles$drive <- as.factor(vehicles$drive)
+
+# use a copy dataset
+
+# whats in our drive variable
+
+unique(vehicles$drive)
+
+vehicles2 <- vehicles %>% 
+  mutate(drive2 = recode(drive, '2-Wheel Drive' = 'Front-Wheel Drive')) %>% 
+  mutate(drive2 = recode(drive2,   "All-Wheel Drive"= "4-Wheel Drive"))%>% 
+  select(drive,drive2)
+
+vehicles2 <- data.frame(vehicles2)
+```
+
+
+# dummy coding
+
+dont use the dummies package, its depricated. usefastdummies. 
+
+```{r}
+library(fastDummies) #package 
+vehicles2 <- dummy_cols(.data = vehicles2, select_columns = 'drive2')
+
+```
+
+
+# sampling methods
+simple random sampling
+stratified random sampling
+
+```{r simple random sampling}
+
+
+
+```
+
 
