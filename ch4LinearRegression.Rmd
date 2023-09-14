@@ -1,0 +1,464 @@
+---
+title: "ch4LinearRegression"
+author: "Jason Elder"
+date: "2023-09-12"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Regression
+
+questions we can answer with regression include - is there a
+relationship between any of the independatn variables and the dependatn
+variable
+
+-   how strong is that relationship
+
+-   is it a positive or negative relationship
+
+-   is the relationship linear
+
+-   if it is, how accurately can we predict our dependant variable (Y)
+    with our current data
+
+-   how accurately can we predict future data
+
+note: most common (correlation coefficent) for linear regression is
+pearson $rho$
+
+-   \<0.3 = weak
+
+-   \< 0.5 & \> .03 = moderate
+
+-   \> 0.5 = strong
+
+
+
+```{r packages, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(stats)
+library(corrplot)
+library(psych)
+library(emo)
+
+```
+
+```{r, echo = FALSE}
+emo::ji('face')
+```
+```{r load data}
+bikes <- 'Full Book/Chapter 4 Code/Student/Data/bikes.csv'
+
+bikes <- read_csv(bikes, show_col_types = F)
+# look at data
+
+str(bikes)
+
+# gonna have to make some of these factors
+
+any(is.na(bikes))
+
+# no NAs :)
+
+
+```
+
+# correlations
+
+```{r correlations}
+emo::ji('face')
+
+bikesNum <- bikes %>% 
+  select(-date)
+rawcor <- cor(x = bikesNum) # correlation nums
+
+corrplot(rawcor,  type = 'lower') # good looking
+
+```
+
+# regression
+
+lm is wierd in that data is not the first default argument
+
+```{r regression }
+
+bikes_lm1 <- lm(data = bikes, rentals ~ temperature)
+summary(bikes_lm1)
+```
+
+model interpretation
+
+this is what the model is\
+
+###### Call: lm(formula = rentals \~temperature, data = bikes)
+
+this is the descriptive stats for the residuals of the model min means
+our model over predicted the number of bikes by 4615 at least once. the
+max means that our model under predicted the number of bikes by 3737 at
+least once. when median is (-) then our model over predicts rentals on
+more than half the observations.
+
+key: observed minus predicted
+
+###### Residuals:
+
+###### Min 1Q Median 3Q Max
+
+###### -4615.3 -1134.9 -104.4 1044.3 3737.8
+
+Estimate is the betas ()for each predictor. Std = spread from the
+estimate, lower is better. t = effective size of predictor p =
+significance of predictor
+
+###### Coefficients:
+
+###### Estimate Std. Error t value Pr(\>\|t\|)
+
+###### (Intercept) -166.877 221.816 -0.752 0.452
+
+###### temperature 78.495 3.607 21.759 \<2e-16 \*\*\*
+
+###### ---
+
+###### Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+RSE = measures $lack$ $of$ $fit$ this means on average the model
+predicted 1509 bikes away from the true values. ( in units of Y)\
+
+multiple R\^2 (a.k.a coeficcient of determination) = is a proportion,
+how much of the variability of the data is explained by the model. .39 =
+39% of the variability in the data set is explained by the model.\
+
+adjusted R\^2 = is adjusted for how many predictors are used. can be
+used to compare across models with differing number of predictors.\
+
+F-stat = tells if there is is a relationship between the predictors and
+the response variables. this one is large so we can say there is a
+strong relationship between the predictors and response vars. GIVEN that
+the p value is small.\
+
+p value = the likely hood that a relationship is due to chance. smaller
+is better.\
+
+###### Residual standard error: 1509 on 729 degrees of freedom
+
+###### MultipleR-squared: 0.3937, AdjustedR-squared: 0.3929
+
+###### F-statistic: 473.5 on 1 and 729 DF, p-value: \< 2.2e-16
+
+```{r multiple linear regression}
+
+bikes_lm2 <- lm(rentals~ humidity + windspeed + temperature, data = bikes)
+summary(bikes_lm2)
+```
+
+# Diagnostics
+
+these are assumption checks that have to do with the residuals
+
+-   residuals have a mean of zero
+-   residuals are normally distributed
+-   residuals have equal variance across the values of the independent
+    variable (homoscedasticity)
+-   residuals are not correlated
+
+```{r assumption check packages, warning= FALSE, message= FALSE }
+library(olsrr)
+library(lmtest) # has bptest
+library(car) # has durbin watson test
+```
+
+```{r assumption checks}
+
+# Zero mean of residuals?
+mean(bikes_lm2$residuals)
+
+# normally distributed?
+ols_plot_resid_hist(bikes_lm2)
+ols_plot_resid_fit(bikes_lm2)
+
+# homoscedasticity 
+# there are two ways to test for this. can use the Breusch-Pagan stats test. or can plot it. we gonna plot it. is the otherside of heteroscedasticity. we dont want heteroscedasticity (this is a bias in the distribution of resuduals). but rather we want there to be no pattern in how to residuals are distributed around the model fit (the line). 
+
+ols_plot_resid_fit(bikes_lm2)
+
+# looks like our data is a bit heterscedastic (this is the bad one). we can fix this using weighted regression. or we can do a log transformation on the dependant variable. 
+
+ols_plot_resid_fit(lm(log2(rentals)~ temperature + humidity + windspeed, data = bikes))
+
+ols_plot_resid_fit(lm(log10(rentals)~ temperature + humidity + windspeed, data = bikes))
+
+# this doesnt seem to have helped, but we could run the stats test to actually see if there is a difference. 
+
+
+bptest(lm(log2(rentals)~ temperature + humidity + windspeed, data = bikes))
+
+# it looks like we reduced heterscedasticity by half. this is pretty good I think. the problem is that now our output is hard to interpret bc its in log2 instead fo the oreginal values. 
+
+# Residual Autocorrelation
+
+# the test is call Durbin-Watson test. DW goes from 0 to 4.  with 0-2 being positive autocorrelation and 2-4 being negative autocorrelation. 2 = no autocorrelation, which is what we want. 
+
+
+durbinWatsonTest(bikes_lm2)
+
+#DW stat is .404 
+
+# this shows us that our residuals are positively auto correlated. this can be fixed by adding new predictors to the model or transform some of the predictors. 
+
+durbinWatsonTest(lm(log2(rentals) ~ humidity + windspeed + temperature, data = bikes))
+
+# DW stat = .747
+
+# the log transformation has made the residuals less positively correlated, which is good. 
+
+
+```
+
+# Influencial Point Analysis
+
+this is the advanced version of looking for outliers. in simple linear
+regression, we could just make a box plot to find outliers but with
+multiple predictors a combination of normal seeming data points could
+aggregate into an observation that is extreme when compared to the rest
+of the data set.
+
+to test for this use cooks distance.
+
+```{r influencial point analysis}
+
+ols_plot_cooksd_chart(bikes_lm2)
+
+# to extract these outliers, bc there are a number of them ( use ols_plot_cooksd_bar to highlight outliers)
+
+cooks_outliers <- ols_plot_cooksd_chart(bikes_lm2)
+
+# these are all the most influencial points. 
+arrange(subset(x = cooks_outliers$data, subset = color == 'outlier'), decreasing = desc(cd))
+
+# compare summaries
+
+
+bikes[69,c('rentals', 'humidity', 'windspeed', 'temperature')]
+
+outlier_index <- subset(x = cooks_outliers$data, subset = color == 'outlier')
+
+summary(bikes[outlier_index$obs,c('rentals', 'humidity', 'windspeed', 'temperature')])
+
+
+summary(bikes[-outlier_index$obs ,c('rentals', 'humidity', 'windspeed', 'temperature')])
+
+# the averages are totally different so we get rid of those observations
+
+bikes2 <- bikes[-outlier_index$obs,]
+
+
+
+```
+
+# Multicollinearity
+
+when variables are highly correlated. can inflate sd, which is bad. hard
+to tell which predictors are doing the work. test for variance inflation
+factor $VIF$.\
+if $VIF$ is greater than 5\
+or tolerance is less than .2,\
+you need to make a correction.
+
+```{r}
+ols_vif_tol(bikes_lm2)
+
+# it looks fine
+```
+
+
+
+how to fix it if there is an issue...
+1. drop theproblematic variables form the analysis
+2. combine the collinear predictors into one variable( idk how tho)
+
+# improving the model 
+
+### non - linear relationships
+ we are assuming the relationship between all our predictors and our response is linear.
+ to accomodate for a non- linear relationship we can transform our predictors. 
+ this is called a polynomial regression. since the relationships look quadratic, we can ^2 each variable. and add it to the model
+ 
+```{r improvements}
+bikes2 <- bikes2 %>% 
+  mutate(humidity2 = humidity^2,
+         windspeed2 = windspeed^2,
+         temperature2 = temperature^2)
+
+# did it work
+
+bikes2 %>% 
+  select(humidity, humidity2) %>% 
+  head()
+
+```
+ 
+ 
+```{r improved model}
+
+bikes_lm3 <- lm(rentals ~ humidity + 
+                  windspeed + 
+                  temperature+ 
+                  humidity2 + 
+                  windspeed2 + 
+                  temperature2, 
+                data = bikes2)
+
+summary(bikes_lm3)
+
+# we are up to 60% YAYAYA, bikes wind2 doesnt do anything sooo....
+
+bikes_lm3 <- lm(rentals ~ humidity + 
+                  windspeed + 
+                  temperature+ 
+                  humidity2 + 
+                  # windspeed2 + 
+                  temperature2, 
+                data = bikes2)
+summary(bikes_lm3)
+
+```
+
+
+# categorical Predictors 
+```{r adding categorical predictors}
+#fisrt make sure they are factors 
+str(bikes2)
+# if they arent, make them be
+names <- names(bikes2[, c(2:5)])
+
+bikes2[,names]<- (lapply(X = bikes2[,names], factor))
+
+#check it 
+str(bikes2)
+
+# good job Jason!!!!!
+
+
+bikes2 %>% 
+  select(season, holiday, weekday, weather) %>% 
+  summary()
+
+# naming factor values, he uses recode, but should use fct_recode instead. 
+bikes2 <- bikes2 %>% 
+  mutate(season = fct_recode(season, 
+                             Winter = '1', 
+                             Spring = '2', 
+                             Summer = '3', 
+                             Fall =   '4'),
+         holiday = fct_recode(holiday,
+                              No =  '0',
+                              Yes = '1'),
+         weekday = fct_recode(weekday, 
+                              Sunday =    "0", 
+                              Monday =    "1", 
+                              Tuesday =   "2", 
+                              Wednesday = "3",
+                              Thursday =  "4", 
+                              Friday =    "5", 
+                              Saturday =  "6"),
+         weather = fct_recode(weather, 
+                              Clear =                 '1',
+                             'Light Precipitation' =  '2',
+                              'Heavy Precipitation' = '3'))
+# got to have the summary outsiude of the pipe, otherwise bikes2 becomes the table of results. which makes perfet sense. 
+ji('happy')
+
+summary(bikes2)
+
+
+```
+
+# on interpreting categorical coefficients. 
+the estimate is the beffierence between that factor and the baseline factor ( the baseline factor does not have an estimate). the estimate is the differnce between the factor and the baseline (ex. difference in bike rentals between spring and winter)
+```{r adding new vars to the model}
+
+bikes
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
