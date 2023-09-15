@@ -39,10 +39,10 @@ library(psych)
 library(emo)
 ```
 
-    ## 😯
+    ## 😿
 
 ``` r
-bikes <- 'Full Book/Chapter 4 Code/Student/Data/bikes.csv'
+bikes <- 'Data/bikes.csv'
 
 bikes <- read_csv(bikes, show_col_types = F)
 # look at data
@@ -94,7 +94,7 @@ any(is.na(bikes))
 emo::ji('face')
 ```
 
-    ## 🐵
+    ## 🤦
 
 ``` r
 bikesNum <- bikes %>% 
@@ -652,7 +652,7 @@ bikes2 <- bikes2 %>%
 ji('happy')
 ```
 
-    ## 😆
+    ## 😀
 
 ``` r
 summary(bikes2)

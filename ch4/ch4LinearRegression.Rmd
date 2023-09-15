@@ -2,7 +2,7 @@
 title: "ch4LinearRegression"
 author: "Jason Elder"
 date: "2023-09-12"
-output: html_document
+output: github_document
 editor_options: 
   markdown: 
     wrap: 72
@@ -50,7 +50,7 @@ library(emo)
 emo::ji('face')
 ```
 ```{r load data}
-bikes <- 'Full Book/Chapter 4 Code/Student/Data/bikes.csv'
+bikes <- 'Data/bikes.csv'
 
 bikes <- read_csv(bikes, show_col_types = F)
 # look at data

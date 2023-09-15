@@ -20,7 +20,7 @@ library(tidyverse)
 # reading
 
 ```{r data}
-vehicles <- read_csv('Full Book/Chapter 3 Code/Student/Data/vehicles.csv')
+vehicles <- read_csv('Data/vehicles.csv')
 ```
 
 glimpse is like head, but formatted different 
