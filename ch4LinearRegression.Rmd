@@ -34,7 +34,7 @@ pearson $rho$
 
 -   \> 0.5 = strong
 
-
+# packages
 
 ```{r packages, message=FALSE, warning=FALSE}
 
@@ -164,6 +164,8 @@ these are assumption checks that have to do with the residuals
 -   residuals have equal variance across the values of the independent
     variable (homoscedasticity)
 -   residuals are not correlated
+
+# packages
 
 ```{r assumption check packages, warning= FALSE, message= FALSE }
 library(olsrr)
@@ -366,8 +368,8 @@ bikes2 <- bikes2 %>%
                               Friday =    "5", 
                               Saturday =  "6"),
          weather = fct_recode(weather, 
+                              'Light Precipitation' =  '2',
                               Clear =                 '1',
-                             'Light Precipitation' =  '2',
                               'Heavy Precipitation' = '3'))
 # got to have the summary outsiude of the pipe, otherwise bikes2 becomes the table of results. which makes perfet sense. 
 ji('happy')
@@ -378,16 +380,82 @@ summary(bikes2)
 ```
 
 # on interpreting categorical coefficients. 
-the estimate is the beffierence between that factor and the baseline factor ( the baseline factor does not have an estimate). the estimate is the differnce between the factor and the baseline (ex. difference in bike rentals between spring and winter)
+the estimate is the defference between that factor and the baseline factor ( the baseline factor does not have an estimate). the estimate is the differnce between the factor and the baseline (ex. difference in bike rentals between spring and winter)
 ```{r adding new vars to the model}
 
-bikes
+bikes_lm4 <- lm(rentals ~ humidity + 
+                  windspeed +
+                  temperature +
+                  humidity2 +
+                  temperature2 +
+                  season,
+                data = bikes2)
+summary(bikes_lm4)
 
 ```
 
 
+# adding interaction effects 
+
+```{r interaction effects}
+
+bikes_lm5 <- lm(rentals ~ humidity +
+                  windspeed +
+                  temperature + 
+                  humidity2 +
+                  temperature2 +
+                  season + 
+                  windspeed * weather,
+                data = bikes2)
+summary(bikes_lm5)
 
 
+```
+# Choosing variables
+1. forward selection
+try every combo for var 1, then try all of them for var 2 etc...
+asses using Residual sum of square (RSS). find the highest RSS, then move to add the next var. cant use this if there are more var then obs. 
+2. backward elimination
+include all the vars, the get rid of the ones with the least predictive value. 
+3. mixed selection
+
+```{r adding vars}
+# using lubraidate
+
+bikes2 <- bikes2 %>%
+  mutate(day = as.numeric(date-min(date)), # days since program began
+         month = as.factor(month(date)),   # months
+         year = as.factor(year(date))) %>% 
+  select( - date) # get rid of date var
+
+```
+
+```{r mixed selection }
+ols_step_both_p( model = lm(
+                            rentals ~ # if you log() this the output keeps some more vars but is hard to interpret and also does actually perform all that much better. 
+                              humidity + 
+                              weekday +
+                              holiday +
+                              temperature +
+                              humidity2 +
+                              temperature2 +
+                              season +
+                              windspeed * weather +
+                              realfeel +
+                              day +
+                              month +
+                              year,
+                            data = bikes2),
+                pent = .2, # p enter, the p value required to include it in the model
+                prem = .01, # p remove, the p value to remove a var from model
+                progress = F, # we dont want to see all this junk
+                details = T # this has like insane amounts of out put if T,. ig we need it for the last bit
+)
+```
+
+# results 
+so in the end we were able to build a model that could predict 87% of the variability in our dataset.
+unfortunately we did not use a test train set so we cant test our model to see if we over fit it. my guess is that we did, to some degree. but thats like whateves bc this is just for funzies `r ji('smile')`
 
 
 
